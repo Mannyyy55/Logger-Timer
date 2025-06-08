@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Logger+Timer</title>
+  <style>
+    body {
+      font-family: Helvetica, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    .timer {
+      font-size: 48px;
+      margin: 20px 0;
+    }
+    .category-button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    .control-buttons {
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Logger+Timer</h1>
+  
+  <div class="timer" id="timer">00:00:00</div>
+  <button id="startTimer">Start Timer</button>
+
+  <div class="control-buttons">
+    <button id="addCategory">Add Category</button>
+    <button id="exportCSV">Export CSV</button>
+  </div>
+
+  <div id="categoryButtons"></div>
+
+  <script>
+    let startTime = null;
+    let timerInterval;
+    let logs = {};
+    let maxRows = 0;
+
+    function formatTime(seconds) {
+      const hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
+      const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+      const secs = String(seconds % 60).padStart(2, '0');
+      return `${hrs}:${mins}:${secs}`;
+    }
+
+    function updateTimer() {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      document.getElementById('timer').textContent = formatTime(elapsed);
+    }
+
+    document.getElementById('startTimer').addEventListener('click', () => {
+      if (!startTime) {
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 1000);
+      }
+    });
+
+    document.getElementById('addCategory').addEventListener('click', () => {
+      const category = prompt('Enter category name:');
+      if (!category || logs[category]) return;
+
+      logs[category] = [];
+
+      const button = document.createElement('button');
+      button.textContent = category;
+      button.className = 'category-button';
+      button.addEventListener('click', () => {
+        const timestamp = formatTime(Math.floor((Date.now() - startTime) / 1000));
+        logs[category].push(timestamp);
+        maxRows = Math.max(maxRows, logs[category].length);
+      });
+
+      document.getElementById('categoryButtons').appendChild(button);
+    });
+
+    document.getElementById('exportCSV').addEventListener('click', () => {
+      const categories = Object.keys(logs);
+      if (categories.length === 0) return;
+
+      let rows = [];
+      for (let i = 0; i < maxRows; i++) {
+        const row = categories.map(cat => logs[cat][i] || "");
+        rows.push(row);
+      }
+
+      const csvContent = [categories.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'logger_timer_data.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
